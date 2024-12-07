@@ -81,12 +81,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
 
     packagingOptions {
@@ -197,4 +197,8 @@ dependencies {
     // AndroidX Test - Hilt testing
     androidTestImplementation(libs.hilt.android.testing)
     kaptAndroidTest(libs.hilt.compiler)
+
+    implementation(libs.coil.kt.compose)
+    implementation("androidx.compose.foundation:foundation:1.4.1")
+
 }

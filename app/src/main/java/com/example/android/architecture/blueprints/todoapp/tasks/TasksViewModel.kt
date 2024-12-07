@@ -48,7 +48,8 @@ data class TasksUiState(
     val items: List<Task> = emptyList(),
     val isLoading: Boolean = false,
     val filteringUiInfo: FilteringUiInfo = FilteringUiInfo(),
-    val userMessage: Int? = null
+    val userMessage: Int? = null,
+    val banners : List<String> = bannerList,
 )
 
 /**
@@ -193,3 +194,10 @@ data class FilteringUiInfo(
     val noTasksLabel: Int = R.string.no_tasks_all,
     val noTaskIconRes: Int = R.drawable.logo_no_fill,
 )
+
+val bannerList =  mutableListOf(
+"https://www.shutterstock.com/image-vector/brush-sale-banner-vector-260nw-1090866878.jpg",
+"https://img.freepik.com/free-vector/orange-polygonal-sale-banner-template_1017-9175.jpg",
+"https://img.freepik.com/free-vector/abstract-sale-banner-offer-discount-business-background-free-vector_1340-22414.jpg",
+"https://img.freepik.com/free-vector/gradient-sale-background_23-2148857066.jpg",
+"https://img.freepik.com/premium-vector/super-sale-modern-banner-design_507704-56.jpg")
