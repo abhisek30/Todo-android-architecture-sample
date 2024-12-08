@@ -31,6 +31,7 @@ import com.example.android.architecture.blueprints.todoapp.tasks.TasksFilterType
 import com.example.android.architecture.blueprints.todoapp.util.Async
 import com.example.android.architecture.blueprints.todoapp.util.WhileUiSubscribed
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -67,9 +69,15 @@ class TasksViewModel @Inject constructor(
     private val _filterUiInfo = _savedFilterType.map { getFilterUiInfo(it) }.distinctUntilChanged()
     private val _userMessage: MutableStateFlow<Int?> = MutableStateFlow(null)
     private val _isLoading = MutableStateFlow(false)
+    private val _reorderedTasksFlow = MutableStateFlow<List<Task>>(emptyList())
     private val _filteredTasksAsync =
-        combine(taskRepository.getTasksStream(), _savedFilterType) { tasks, type ->
-            filterTasks(tasks, type)
+        combine(taskRepository.getTasksStream(), _savedFilterType, _reorderedTasksFlow) { tasks, type, reorderedTasks ->
+            _reorderedTasksFlow.value = if (reorderedTasks.isEmpty()) {
+                tasks
+            } else {
+                reorderTasks(reorderedTasks, tasks)
+            }
+            filterTasks(_reorderedTasksFlow.value, type)
         }
             .map { Async.Success(it) }
             .catch<Async<List<Task>>> { emit(Async.Error(R.string.loading_tasks_error)) }
@@ -100,6 +108,18 @@ class TasksViewModel @Inject constructor(
             initialValue = TasksUiState(isLoading = true)
         )
 
+    private fun reorderTasks(
+        reorderedTasks: List<Task>,
+        latestTasks: List<Task>
+    ): List<Task> {
+        val latestTasksMap = latestTasks.associateBy { it.id }
+        val updatedReorderedTasks = reorderedTasks.mapNotNull { latestTasksMap[it.id] }
+        val newTasks = latestTasks.filterNot { task -> reorderedTasks.any { it.id == task.id } }
+
+        return updatedReorderedTasks + newTasks
+    }
+
+
     fun setFiltering(requestType: TasksFilterType) {
         savedStateHandle[TASKS_FILTER_SAVED_STATE_KEY] = requestType
     }
@@ -116,9 +136,12 @@ class TasksViewModel @Inject constructor(
         if (completed) {
             taskRepository.completeTask(task.id)
             showSnackbarMessage(R.string.task_marked_complete)
+            delay(2000L)
+            moveTaskToBottom(task.copy(isCompleted = true))
         } else {
             taskRepository.activateTask(task.id)
             showSnackbarMessage(R.string.task_marked_active)
+            moveTaskToTop(task.copy(isCompleted = false))
         }
     }
 
@@ -127,6 +150,22 @@ class TasksViewModel @Inject constructor(
             EDIT_RESULT_OK -> showSnackbarMessage(R.string.successfully_saved_task_message)
             ADD_EDIT_RESULT_OK -> showSnackbarMessage(R.string.successfully_added_task_message)
             DELETE_RESULT_OK -> showSnackbarMessage(R.string.successfully_deleted_task_message)
+        }
+    }
+
+    private fun moveTaskToBottom(task: Task) {
+        viewModelScope.launch {
+            _reorderedTasksFlow.update { currentList ->
+                (currentList - task) + task
+            }
+        }
+    }
+
+    private fun moveTaskToTop(task: Task) {
+        viewModelScope.launch {
+            _reorderedTasksFlow.update { currentList ->
+                listOf(task) + currentList.filterNot { it.id == task.id }
+            }
         }
     }
 
