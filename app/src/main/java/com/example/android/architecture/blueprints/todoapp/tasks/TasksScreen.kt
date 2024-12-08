@@ -140,6 +140,7 @@ fun TasksScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TasksContent(
     loading: Boolean,
@@ -177,11 +178,12 @@ private fun TasksContent(
                     style = MaterialTheme.typography.h6
                 )
                 LazyColumn(Modifier.padding(bottom = 240.dp)) {
-                    items(tasks) { task ->
+                    items(tasks, key = { task -> task.id }) { task ->
                         TaskItem(
                             task = task,
                             onTaskClick = onTaskClick,
-                            onCheckedChange = { onTaskCheckedChange(task, it) }
+                            onCheckedChange = { onTaskCheckedChange(task, it) },
+                            modifier = Modifier.animateItemPlacement(),
                         )
                     }
                 }
@@ -198,11 +200,12 @@ private fun TasksContent(
 private fun TaskItem(
     task: Task,
     onCheckedChange: (Boolean) -> Unit,
-    onTaskClick: (Task) -> Unit
+    onTaskClick: (Task) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(
                 horizontal = dimensionResource(id = R.dimen.horizontal_margin),
